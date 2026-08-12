@@ -1,0 +1,6 @@
+{
+  "model": "minimind",
+  "samples": 4329,
+  "accuracy": 0.2601062601062601,
+  "note": "MMBench en/dev single-pass MCQ accuracy (no circular evaluation)."
+}

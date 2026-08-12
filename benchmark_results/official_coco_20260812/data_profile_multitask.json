@@ -1,0 +1,21 @@
+{
+  "parquet": "dataset/multitask_sft.parquet",
+  "total_rows": 231605,
+  "exact_duplicate_rows": 7,
+  "exact_duplicate_rate": 3.0223872541611796e-05,
+  "unique_image_ratio": 0.5155026877658082,
+  "sampled_minhash_near_duplicate": {
+    "sample_size": 15000,
+    "compare_per_sample": 100,
+    "num_perm": 64,
+    "threshold": 0.8,
+    "near_duplicate_pair_rate": 1.6001130746572756e-05,
+    "note": "sampled pairwise estimate on normalized instruction text; not a filter (repeated questions across images are legitimate VQA signal)."
+  },
+  "task_counts_expected": {
+    "caption": 118287,
+    "vqa": 100000,
+    "okvqa": 9009,
+    "mcq": 4329
+  }
+}

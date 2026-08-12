@@ -1,0 +1,6 @@
+{
+  "weight": "multitask_final_vlm",
+  "samples": 5046,
+  "accuracy": 0.03190646056282203,
+  "note": "OK-VQA val2014; official 3-of-10 agreement rule with answer normalization."
+}

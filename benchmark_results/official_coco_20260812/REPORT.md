@@ -150,3 +150,75 @@ fix2 配置：group=16、自适应 beta 目标 KL=0.06、KL safety stop 0.50、�
 4. **多任务能力**：VQAv2 2000 题子集 0 → 31.6%（专项 SFT）→ 20.9%（混合 SFT，caption 同步保留/提升，CIDEr 0.0067 全场最优）。
 5. **规模与效率**：Qwen2.5-VL-3B + LoRA（0.98% 参数、28 分钟）VQAv2 82.0%、COCO CIDEr 0.8364，展示规模跃迁与 LoRA 训练效率。
 6. **限制声明**：65M 轻量底座指标适用于受控比较；3B 为预训练基座 LoRA 适配；官方 METEOR 因 Stanford parser/Java 兼容问题未输出（已用超时保护确认），用内部 METEOR-exact 补充。
+
+---
+
+# 下午补强轮（2026-08-12）：多任务 VLM / 官方 METEOR / POPE / judge-GRPO
+
+## 1. 官方 METEOR 修复
+
+根因：pycocoevalcap 1.2 的 meteor.py 与新版 JVM 输出不兼容（读取行含
+多个数值导致 float 解析失败）。修复 wrapper（输入消毒 + 容错解析），
+10 个检查点的官方 COCOEvalCap **四指标全部补齐**（val2017 全量 5000 张）：
+
+| 检查点 | BLEU-4 | ROUGE-L | CIDEr | METEOR |
+|---|---:|---:|---:|---:|
+| Pretrain | 0.0250 | 0.2160 | 0.0063 | 0.1483 |
+| SFT | 0.0237 | 0.2136 | 0.0058 | 0.1491 |
+| GRPO 原版 | 0.0067 | 0.1517 | 0.0002 | 0.1023 |
+| GRPO fix2 | **0.0266** | 0.2159 | 0.0036 | **0.1529** |
+| Qwen3B LoRA | 0.2566 | 0.4542 | 0.8364 | 0.2647 |
+
+## 2. 最终 VLM（multitask_final_vlm）：231k 多任务 SFT
+
+从 pretrain_full 基座、单阶段多任务 SFT（caption 118k + VQAv2 100k +
+OK-VQA 9k + MMBench 4.3k，batch 32 × 2 epochs，49 分钟，9.6GB 显存）。
+
+| 基准 | 最终 65M | 旧最佳 65M | Qwen3B LoRA |
+|---|---:|---:|---:|
+| 官方 COCO CIDEr | **0.6395** | 0.0067 | 0.8364 |
+| 官方 COCO BLEU-4 | **0.2271** | 0.0266 | 0.2566 |
+| 官方 COCO ROUGE-L | **0.4723** | 0.2159 | 0.4542 |
+| 官方 COCO METEOR | **0.2364** | 0.1529 | 0.2647 |
+| VQAv2（2000 题） | **32.8%** | 31.6% | 82.0% |
+| OK-VQA（5046 题） | 3.2% | 0% | 38.5% |
+| MMBench en/dev 全量 | **26.0%** | 12.0% | 84.9% |
+| POPE 总体准确率 | 37.4% | — | 94.2% |
+
+核心发现：多任务 SFT 首次让 65M 同时拿到强 caption（CIDEr 0.64）与
+VQA（32.8%），解决了"VQA 提升毁 caption"的 tradeoff；POPE 量化了
+65M 的 yes 幻觉（yes 比例 77% vs 3B 24%）。
+
+## 3. judge 奖励代理质量与 GRPO v3（负结果）
+
+- **相关性**：Qwen2.5-VL-3B judge 打分 vs 官方指标 Spearman r =
+  CIDEr 0.480 / ROUGE-L 0.478 / proxy 0.469 / METEOR 0.425 / BLEU-4 0.384
+  （合理但不完美的奖励代理）。
+- **GRPO v3**：与 fix2 同基座同数据，奖励换成纯 judge，800 步/25 分钟；
+  judge 均分 2.58 → 2.75（奖励真实优化）、KL 0.096 无爆炸；
+  但官方 BLEU-4 0.0210 / CIDEr 0.0047 / METEOR 0.1464，未超 SFT。
+- **诊断**：逐样本检查发现策略漂移为 "As an AI language model..." 拒答 +
+  冗长对冲（POPE/VQA 归零、COCO 变为 depict 式啰嗦描述）。根因是
+  训练数据含安全样本，judge 奖励了它自己的安全腔——LLM-as-judge
+  的 reward hacking 典型案例。修复方向（格式约束/偏好对）记录为后续工作。
+
+## 4. 数据工程画像（231,605 条多任务数据）
+
+精确重复（同图+同指令）7 条（0.003%）；minhash 采样近重复率 0.0016%
+（15k×100 对，阈值 0.8）；唯一图像占比 51.6%；跨任务同图与任务内
+同图多问题刻意保留（多任务信号）。
+
+## 5. 面试要点更新
+
+- 评测口径：官方 COCOEvalCap 四指标齐全（METEOR 已修复）；
+- 评测广度：COCO + VQAv2 + OK-VQA + MMBench + POPE，65M/3B 双口径；
+- 训练配方：多任务 SFT 解决 tradeoff（32.8% VQA + CIDEr 0.64）；
+- RLHF 深度：judge 奖励代理相关性 + reward hacking 负结果；
+- 研究素养：yes 幻觉、judge 漂移全部如实呈现。
+
+结果文件：本目录 `multitask_final_vlm_official_coco.json`、
+`grpo_judge_vlm_official_coco.json`、`qwen3b_okvqa.json`、
+`mmbench_multitask_final.json`、`pope_multitask_final.json`、
+`pope_qwen3b.json`、`judge_vs_official_final.json`、
+`data_profile_multitask.json`。完整叙述见
+[docs/UPGRADE_20260812.md](../../docs/UPGRADE_20260812.md)。

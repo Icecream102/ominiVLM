@@ -9,8 +9,8 @@
     "Bleu_4": 0.023677178909439326,
     "ROUGE_L": 0.21357972913245435,
     "CIDEr": 0.005831436102337158,
-    "METEOR": null
+    "METEOR": 0.14911788874745138
   },
   "predictions_file": "results/official_coco/sft_full_vlm/predictions_coco.json",
-  "metric_note": "Official COCOEvalCap (pycocoevalcap) scores."
+  "metric_note": "Official COCOEvalCap (pycocoevalcap) scores incl. METEOR."
 }

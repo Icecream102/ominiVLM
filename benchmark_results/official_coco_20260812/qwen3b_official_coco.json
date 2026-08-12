@@ -8,6 +8,7 @@
     "Bleu_4": 0.25660932936000663,
     "ROUGE_L": 0.45416445786426146,
     "CIDEr": 0.8364187344233825,
-    "METEOR": null
-  }
+    "METEOR": 0.26465737273576184
+  },
+  "metric_note": "Official COCOEvalCap (pycocoevalcap) scores incl. METEOR."
 }

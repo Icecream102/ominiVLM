@@ -6,8 +6,10 @@ the clipped GRPO objective with a frozen SFT reference policy and KL penalty.
 """
 
 import argparse
+import io
 import json
 import os
+import re
 import sys
 import time
 from contextlib import nullcontext
@@ -76,6 +78,12 @@ def parse_args():
     parser.add_argument("--reward_length", type=float, default=0.10)
     parser.add_argument("--reward_repetition", type=float, default=0.20)
     parser.add_argument("--reward_cider", type=float, default=0.0, help="weight of batch-level CIDEr-style reward")
+    parser.add_argument("--reward_judge", type=float, default=0.0,
+                        help="weight of a stronger-model judge reward (Qwen2.5-VL)")
+    parser.add_argument("--judge_model_path", default="model/qwen25vl-3b-instruct")
+    parser.add_argument("--judge_adapter_path", default="",
+                        help="optional LoRA adapter for the judge (empty = base instruct model)")
+    parser.add_argument("--judge_max_new_tokens", type=int, default=4)
     parser.add_argument("--dtype", choices=["float16", "bfloat16"], default="bfloat16")
     parser.add_argument("--device", default="cuda:0" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--num_workers", type=int, default=2)
@@ -176,6 +184,52 @@ def main():
     policy.vision_encoder.eval()
     get_model_params(reference, config)
 
+    judge_model = judge_processor = None
+    if args.reward_judge > 0:
+        from PIL import Image
+        from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
+        print(f"loading judge model {args.judge_model_path} ...", flush=True)
+        judge_processor = AutoProcessor.from_pretrained(
+            args.judge_model_path, min_pixels=256 * 28 * 28, max_pixels=512 * 28 * 28
+        )
+        judge_model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+            args.judge_model_path, torch_dtype="bfloat16", device_map="cuda"
+        )
+        if args.judge_adapter_path:
+            from peft import PeftModel
+            judge_model = PeftModel.from_pretrained(judge_model, args.judge_adapter_path)
+        judge_model.eval()
+
+    def judge_scores_for(completions, image_bytes):
+        """Score each completion 1..5 with the stronger judge model, mapped to [-1, 1]."""
+        from PIL import Image as PILImage
+        image = PILImage.open(io.BytesIO(image_bytes)).convert("RGB")
+        scores = []
+        for text in completions:
+            messages = [{
+                "role": "user",
+                "content": [
+                    {"type": "image", "image": image},
+                    {"type": "text", "text": (
+                        "Rate this image description from 1 to 5 for factual accuracy, "
+                        f"completeness and naturalness. Output only the integer score.\nDescription: {text}"
+                    )},
+                ],
+            }]
+            prompt = judge_processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            inputs = judge_processor(text=[prompt], images=[image], return_tensors="pt").to(args.device)
+            with torch.inference_mode():
+                generated = judge_model.generate(
+                    **inputs, max_new_tokens=args.judge_max_new_tokens, do_sample=False
+                )
+            response = judge_processor.decode(
+                generated[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True
+            ).strip()
+            match = re.search(r"\d+(\.\d+)?", response)
+            parsed = float(match.group(0)) if match else 3.0
+            scores.append(max(-1.0, min(1.0, (parsed - 3.0) / 2.0)))
+        return scores
+
     dataset = VLMGRPODataset(
         args.data_path,
         tokenizer,
@@ -270,10 +324,13 @@ def main():
                     ).strip()
                     for row, ids in enumerate(completion_ids)
                 ]
+                judge_scores = []
+                if args.reward_judge > 0:
+                    judge_scores = judge_scores_for(completions, batch["image_bytes"])
                 if args.reward_cider > 0:
                     reference_tokens = [tokenize(batch["reference"])]
                     reward_items = []
-                    for text in completions:
+                    for position, text in enumerate(completions):
                         base, components = reference_reward(
                             text, [batch["reference"]], weights=reward_weights
                         )
@@ -281,14 +338,22 @@ def main():
                             tokenize(text), reference_tokens, document_frequency, document_count
                         ) / 10.0
                         components["cider_style"] = cider_value
-                        reward_items.append(
-                            (max(-1.0, min(1.0, base + args.reward_cider * cider_value)), components)
-                        )
+                        total = base + args.reward_cider * cider_value
+                        if judge_scores:
+                            components["judge_score"] = judge_scores[position]
+                            total = total + args.reward_judge * judge_scores[position]
+                        reward_items.append((max(-1.0, min(1.0, total)), components))
                 else:
-                    reward_items = [
-                        reference_reward(text, [batch["reference"]], weights=reward_weights)
-                        for text in completions
-                    ]
+                    reward_items = []
+                    for position, text in enumerate(completions):
+                        base, components = reference_reward(
+                            text, [batch["reference"]], weights=reward_weights
+                        )
+                        total = base
+                        if judge_scores:
+                            components["judge_score"] = judge_scores[position]
+                            total = base + args.reward_judge * judge_scores[position]
+                        reward_items.append((max(-1.0, min(1.0, total)), components))
                 rewards = torch.tensor([item[0] for item in reward_items], device=args.device)
                 advantages = (rewards - rewards.mean()) / (rewards.std(unbiased=False) + 1e-4)
                 pixels_group = repeat_pixels(batch["pixel_values"], args.group_size, args.device)

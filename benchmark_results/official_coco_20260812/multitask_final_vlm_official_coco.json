@@ -1,0 +1,16 @@
+{
+  "weight": "multitask_final_vlm",
+  "samples": 5000,
+  "annotation_file": "dataset/coco2017/annotations/captions_val2017.json",
+  "official_coco": {
+    "Bleu_1": 0.6735883499979116,
+    "Bleu_2": 0.4820975728558223,
+    "Bleu_3": 0.3311412617051796,
+    "Bleu_4": 0.22708932852257083,
+    "ROUGE_L": 0.47233888196262186,
+    "CIDEr": 0.6395127851294831,
+    "METEOR": 0.23642717146516098
+  },
+  "predictions_file": "results/official_coco/multitask_final_vlm/predictions_coco.json",
+  "metric_note": "Official COCOEvalCap (pycocoevalcap) scores."
+}

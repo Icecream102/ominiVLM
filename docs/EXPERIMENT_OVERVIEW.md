@@ -108,3 +108,40 @@ fix2（内部 COCO500）：BLEU-4 0.0410、METEOR-exact 0.3093、ROUGE-L 0.2539�
 > 我通过 black/shuffled 对照确认模型确实使用视觉输入，并通过自适应 KL、增大
 > group、引入 CIDEr 对齐奖励，把官方 BLEU-4 从 0.0067 修复到 0.0266（超过 SFT），KL 压到 1/18。
 > 同时完成了官方 COCOEvalCap 评测接入、架构消融和可视化，工程上可一键复现。
+
+## 8. 下午补强轮（2026-08-12）：多任务 VLM、评测广度、judge 奖励
+
+### 8.1 一句话总结
+
+通过 231k 多任务 SFT 训练出 `multitask_final_vlm`：官方 COCO CIDEr 0.0067 →
+0.6395（+110×）、BLEU-4 0.2271、VQAv2 32.8%、MMBench 26.0%（全量 4329）；
+补齐官方 METEOR 与 POPE 幻觉基准；实现并实证了 judge 奖励 GRPO 的
+reward hacking 风险。详见 [UPGRADE_20260812.md](UPGRADE_20260812.md)。
+
+### 8.2 新增结果速查
+
+| 项目 | 结果 |
+|---|---|
+| 官方 COCO 四指标 | 10 检查点全补齐（METEOR 修复 Java 兼容） |
+| 最终 VLM 官方 COCO | CIDEr 0.6395 / BLEU-4 0.2271 / METEOR 0.2364 |
+| VQAv2 / OK-VQA / MMBench | 32.8% / 3.2% / 26.0%（65M）；3B: 82.0% / 38.5% / 84.9% |
+| POPE 幻觉 | 65M 37.4%（yes 复读）vs 3B 94.2%（校准良好） |
+| judge 奖励代理质量 | Spearman r = 0.38–0.48（与官方指标） |
+| GRPO v3（纯 judge，800 步） | 奖励真实上升但策略漂移为拒答/啰嗦 → reward hacking 负结果 |
+| 数据工程 | 231,605 条多任务 SFT；精确重复 0.003%；minhash 近重复 0.0016% |
+
+### 8.3 对岗位要求的增量满足
+
+- 评测广度：COCO caption + VQAv2 + OK-VQA + MMBench + POPE，65M/3B 双口径；
+- 评测口径：官方 COCOEvalCap 四指标齐全；
+- 数据工程：多任务构建 + 去重画像 + 配比论证；
+- 训练配方：多任务 SFT 解决 VQA↔caption tradeoff；
+- RLHF 深度：judge 奖励代理质量分析 + reward hacking 诊断（负结果）；
+- 研究素养：yes 幻觉、judge 漂移全部如实呈现。
+
+### 8.4 遗留缺口（如实记录）
+
+- 多卡分布式训练（FSDP/DeepSpeed）仍未实操；
+- 7B+ 全参/大规模预训练缺失；
+- judge-GRPO 的修复（格式约束/偏好对）为后续工作；
+- OK-VQA 知识短板与 POPE yes 幻觉是 65M 的真实上限。

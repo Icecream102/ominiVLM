@@ -1,0 +1,21 @@
+{
+  "tag": "judge_vs_official_final",
+  "samples": 500,
+  "judge_mean": 2.576,
+  "judge_std": 0.9819490821829817,
+  "per_caption_metric_means": {
+    "rouge_l": 0.5072201381860879,
+    "meteor_exact": 0.46604690669409476,
+    "bleu4": 0.12152733553113873,
+    "cider": 0.7210000438075006
+  },
+  "proxy_reward_mean": 0.3894994458074512,
+  "correlations": {
+    "judge_vs_proxy_reward": 0.4690931439888652,
+    "judge_vs_rouge_l": 0.4777466812602688,
+    "judge_vs_meteor_exact": 0.42536987957493566,
+    "judge_vs_bleu4": 0.38448911818019577,
+    "judge_vs_cider": 0.4802380278677638
+  },
+  "note": "Spearman rank correlation between Qwen2.5-VL-3B judge scores and official metrics / proxy reward."
+}

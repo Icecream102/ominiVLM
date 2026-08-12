@@ -17,6 +17,37 @@
 4. 为什么 reward 上升不等于能力提升；如何用 held-out 指标、自适应 KL 和 early stopping 修复。
 5. 为什么必须做 black/shuffled 对照，以及“输出发生变化”与“真正理解图像”的区别。
 
+## 二、升级版（2026-08-12 下午）：多任务 VLM 与评测/数据/RLHF 补强
+
+**一句话版**：在 65M 底座上通过 231k 多任务 SFT 拿到官方 COCO CIDEr 0.64
+（+110×）、VQAv2 32.8%、MMBench 26.0%；补齐官方 METEOR 与 POPE 幻觉基准；
+并用 Qwen3B judge 奖励做 GRPO v3，实证强模型奖励代理的迁移性。
+
+### 简历条目（研究向 + 工程向）
+
+- **多任务 VLM 训练**：构建 231k 多任务 SFT 数据（COCO caption + VQAv2 +
+  OK-VQA + MMBench MCQ，minhash 画像去重），单阶段 SFT 让 65M 模型
+  官方 COCO CIDEr 0.006 → 0.64、BLEU-4 0.2271、VQAv2 32.8%、MMBench 26.0%，
+  同时解决“VQA 与 caption 互斥”的 tradeoff。
+- **评测体系**：官方 COCOEvalCap 四指标全补齐（修复 METEOR 与新版 JVM 的
+  兼容问题）、接入 OK-VQA 与 POPE 幻觉基准（65M 37.4% vs 3B 94.2%，
+  量化小模型 yes 幻觉），全部 65M/3B 双口径。
+- **RLHF 奖励升级**：实现 Qwen2.5-VL-3B judge 奖励版 GRPO（group-relative
+  advantage + 自适应 KL + safety stop），分析 judge 与官方指标的 Spearman
+  相关（r=0.38–0.48），800 步纯 judge 训练无 KL 漂移。
+
+### 面试展开要点（新增）
+
+6. 为什么多任务 SFT 能同时改善 caption 与 VQA——数据配方（任务配比、
+   同图多问题保留、跨任务同图保留）如何影响 tradeoff。
+7. 官方 METEOR 为什么跑不通（Java/parser 兼容）以及如何修复而不改口径。
+8. POPE 的 yes 幻觉如何量化（yes-ratio / 负样本准确率），以及小模型
+   幻觉更严重的可能机制（容量不足 → 先验偏向）。
+9. judge 奖励为什么不直接用——奖励代理与评测指标的相关性分析、
+   以及“优化代理不一定优化目标”的边界。
+10. 用 3B LoRA 作为 judge/对比模型：0.98% 参数、28 分钟、VQAv2 82%、
+    COCO CIDEr 0.836、POPE 94.2%。
+
 ## 使用边界
 
 简历中应明确这是 65M 轻量模型的单卡研究与工程实验，不应写成“大规模工业 VLM 训练平台”。优势在于完整闭环、可复现性、算法诊断和诚实的负实验分析。

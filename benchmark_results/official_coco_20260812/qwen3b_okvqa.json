@@ -1,0 +1,6 @@
+{
+  "weight": "qwen2.5-vl-3b-lora",
+  "samples": 5046,
+  "accuracy": 0.3853877658871736,
+  "note": "OK-VQA val2014; official 3-of-10 agreement rule with answer normalization."
+}

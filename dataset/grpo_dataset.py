@@ -69,6 +69,7 @@ class VLMGRPODataset(Dataset):
             "pixel_values": pixel_values,
             "reference": conversations[assistant_index].get("content", ""),
             "row_index": index,
+            "image_bytes": image_bytes,
         }
 
     def references(self):
