@@ -1,0 +1,28 @@
+# Local credentials and IDE state
+autodl.md
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Large datasets, checkpoints and caches
+dataset/*.parquet
+dataset/coco2017/
+checkpoints/
+out/
+logs/
+results/
+*.pth
+*.safetensors
+*.tar.gz
+
+# Experiment trackers
+wandb/
+swanlog/
+
+# OS files
+.DS_Store

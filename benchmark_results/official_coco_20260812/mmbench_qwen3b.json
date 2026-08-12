@@ -1,0 +1,6 @@
+{
+  "model": "qwen3b",
+  "samples": 4329,
+  "accuracy": 0.8489258489258489,
+  "note": "MMBench en/dev single-pass MCQ accuracy (no circular evaluation)."
+}

@@ -1,0 +1,69 @@
+{
+  "weight": "pretrain_full_vlm",
+  "checkpoint": "out/pretrain_full_vlm_768.pth",
+  "annotation_file": "dataset/coco2017/annotations/captions_val2017.json",
+  "prompt": "<image>\nDescribe this image in one concise sentence.",
+  "seed": 42,
+  "conditions": {
+    "correct": {
+      "BLEU-1": 0.27855477855477856,
+      "BLEU-2": 0.1502469297557267,
+      "BLEU-3": 0.07362260632304736,
+      "BLEU-4": 0.036602454191704374,
+      "METEOR-exact": 0.29777858608251073,
+      "ROUGE-L": 0.25627359391817894,
+      "CIDEr": 0.013900898562136459,
+      "avg_generated_tokens": 27.456,
+      "empty_rate": 0.0,
+      "samples": 500,
+      "avg_end_to_end_seconds": 0.23246195166930556,
+      "tokens_per_second": 206.48540397821134,
+      "peak_vram_mb": 358.185546875
+    },
+    "black": {
+      "BLEU-1": 0.19733333333333333,
+      "BLEU-2": 0.0344093010681705,
+      "BLEU-3": 0.006330650052696187,
+      "BLEU-4": 0.0,
+      "METEOR-exact": 0.16876125825539012,
+      "ROUGE-L": 0.19256378454055043,
+      "CIDEr": 0.0006716357693669769,
+      "avg_generated_tokens": 30.0,
+      "empty_rate": 0.0,
+      "samples": 500,
+      "avg_end_to_end_seconds": 0.23154163478687406,
+      "tokens_per_second": 207.30612895681728,
+      "peak_vram_mb": 358.185546875
+    },
+    "shuffled": {
+      "BLEU-1": 0.2152534965034965,
+      "BLEU-2": 0.08237511648362514,
+      "BLEU-3": 0.022370914459219942,
+      "BLEU-4": 0.006541561734255092,
+      "METEOR-exact": 0.19610199330965475,
+      "ROUGE-L": 0.20743373041693075,
+      "CIDEr": 0.000994264726853262,
+      "avg_generated_tokens": 27.456,
+      "empty_rate": 0.0,
+      "samples": 500,
+      "avg_end_to_end_seconds": 0.2338746787905693,
+      "tokens_per_second": 205.23812260575315,
+      "peak_vram_mb": 358.185546875
+    }
+  },
+  "visual_dependency": {
+    "black": {
+      "output_change_rate": 1.0,
+      "mean_token_jaccard_distance": 0.7831695073554855,
+      "CIDEr_drop": 0.013229262792769482,
+      "BLEU-4_drop": 0.036602454191704374
+    },
+    "shuffled": {
+      "output_change_rate": 1.0,
+      "mean_token_jaccard_distance": 0.7806679600646579,
+      "CIDEr_drop": 0.012906633835283197,
+      "BLEU-4_drop": 0.030060892457449282
+    }
+  },
+  "metric_note": "Internal exact-token metrics; use official COCOEvalCap for paper comparison."
+}

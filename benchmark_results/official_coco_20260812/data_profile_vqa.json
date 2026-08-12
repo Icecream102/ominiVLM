@@ -1,0 +1,24 @@
+{
+  "parquet": "dataset/vqa_sft.parquet",
+  "total_rows": 20000,
+  "sampled_rows": 20000,
+  "language_mix": {
+    "en": 20000
+  },
+  "has_image_placeholder_ratio": 1.0,
+  "unique_image_ratio_sampled": 0.8421,
+  "assistant_answer_tokens": {
+    "mean": 1.11,
+    "median": 1,
+    "p90": 1
+  },
+  "image_bytes": {
+    "mean_kb": 14.3,
+    "median_kb": 14.0,
+    "p90_kb": 19.8
+  },
+  "role_distribution": {
+    "user": 20000,
+    "assistant": 20000
+  }
+}

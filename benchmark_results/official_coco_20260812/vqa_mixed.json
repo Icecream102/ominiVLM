@@ -1,0 +1,6 @@
+{
+  "weight": "vqa_sft_mix_vlm",
+  "samples": 2000,
+  "accuracy": 0.20849999999999985,
+  "note": "VQAv2 val2014 subset; official 3-of-10 agreement rule with answer normalization."
+}

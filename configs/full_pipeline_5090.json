@@ -1,0 +1,28 @@
+{
+  "name": "full_pipeline_5090",
+  "seed": 42,
+  "pretrain": {
+    "epochs": 2,
+    "batch_size": 128,
+    "learning_rate": 0.0004
+  },
+  "sft": {
+    "epochs": 2,
+    "batch_size": 64,
+    "learning_rate": 0.000005
+  },
+  "grpo": {
+    "samples": 5000,
+    "group_size": 4,
+    "ppo_epochs": 2,
+    "learning_rate": 0.000001,
+    "beta": 0.02,
+    "adaptive_beta": true,
+    "target_kl": 0.1,
+    "kl_stop": 1.0
+  },
+  "evaluation": {
+    "samples": 500,
+    "conditions": ["correct", "black", "shuffled"]
+  }
+}

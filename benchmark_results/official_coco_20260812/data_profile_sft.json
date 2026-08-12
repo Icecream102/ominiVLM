@@ -1,0 +1,26 @@
+{
+  "parquet": "dataset/sft_i2t.parquet",
+  "total_rows": 2904511,
+  "sampled_rows": 100000,
+  "language_mix": {
+    "zh": 48478,
+    "en": 51214,
+    "mixed": 308
+  },
+  "has_image_placeholder_ratio": 0.9198,
+  "unique_image_ratio_sampled": 0.8611,
+  "assistant_answer_tokens": {
+    "mean": 64.0,
+    "median": 51,
+    "p90": 155
+  },
+  "image_bytes": {
+    "mean_kb": 6.3,
+    "median_kb": 6.5,
+    "p90_kb": 9.6
+  },
+  "role_distribution": {
+    "user": 100534,
+    "assistant": 100534
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "weight": "grpo_full_vlm",
+  "samples": 5000,
+  "annotation_file": "dataset/coco2017/annotations/captions_val2017.json",
+  "official_coco": {
+    "Bleu_1": 0.15608577434538137,
+    "Bleu_2": 0.06327298120538591,
+    "Bleu_3": 0.019778421937946364,
+    "Bleu_4": 0.006672157291232099,
+    "ROUGE_L": 0.15174156928742924,
+    "CIDEr": 0.00016279089714407174,
+    "METEOR": null
+  },
+  "predictions_file": "results/official_coco/grpo_full_vlm/predictions_coco.json",
+  "metric_note": "Official COCOEvalCap (pycocoevalcap) scores."
+}
