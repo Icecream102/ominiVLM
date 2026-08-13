@@ -1,0 +1,48 @@
+{
+  "model": "qwen3b",
+  "weight": "out/qwen7b_qlora_multitask",
+  "num_images": 500,
+  "settings": {
+    "positive": {
+      "total": 1500,
+      "accuracy": 0.9026666666666666,
+      "precision": 1.0,
+      "recall": 0.9026666666666666,
+      "f1": 0.9488437281009109,
+      "yes_ratio": 0.9026666666666666
+    },
+    "random": {
+      "total": 1500,
+      "accuracy": 0.9806666666666667,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "yes_ratio": 0.019333333333333334
+    },
+    "popular": {
+      "total": 1500,
+      "accuracy": 0.9486666666666667,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "yes_ratio": 0.051333333333333335
+    },
+    "adversarial": {
+      "total": 1500,
+      "accuracy": 0.9833333333333333,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "yes_ratio": 0.016666666666666666
+    }
+  },
+  "overall_accuracy": 0.9538333333333333,
+  "overall_yes_ratio": 0.2475,
+  "note": "POPE-style object existence probing on COCO2017 val2017 (see script header).",
+  "constrained_calibration": {
+    "ece": 0.0031,
+    "auroc": 0.8033,
+    "mean_confidence": 0.9552,
+    "base_rate_yes": 0.25
+  }
+}

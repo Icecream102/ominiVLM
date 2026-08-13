@@ -3,11 +3,8 @@ import sys
 import json
 
 __package__ = "scripts"
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
-from model.torch_compat import ensure_torch_transformers_compat
-
-ensure_torch_transformers_compat()
 import transformers
 import warnings
 from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaConfig, LlamaForCausalLM

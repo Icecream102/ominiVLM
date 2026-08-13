@@ -211,7 +211,6 @@ def main():
         num_train_epochs=args.epochs,
         learning_rate=args.lr,
         lr_scheduler_type="cosine",
-        warmup_ratio=0.03,
         bf16=True,
         logging_steps=args.logging_steps,
         save_steps=args.save_steps,
@@ -230,7 +229,7 @@ def main():
         train_dataset=train_ds,
         eval_dataset=eval_ds,
         data_collator=collate_fn,
-        tokenizer=processor.tokenizer,
+        processing_class=processor.tokenizer,
     )
     trainer.train(resume_from_checkpoint=args.resume)
     trainer.save_model(args.output_dir)

@@ -2,7 +2,7 @@ import os
 import sys
 
 __package__ = "scripts"
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
 import torch
 import warnings
@@ -10,9 +10,6 @@ import gradio as gr
 from queue import Queue
 from threading import Thread, Lock
 from PIL import Image
-from model.torch_compat import ensure_torch_transformers_compat
-
-ensure_torch_transformers_compat()
 from transformers import AutoTokenizer, AutoModelForCausalLM, TextStreamer
 from model.model_vlm import MiniMindVLM, VLMConfig
 from transformers import logging as hf_logging

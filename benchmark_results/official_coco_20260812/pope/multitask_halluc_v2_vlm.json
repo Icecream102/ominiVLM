@@ -1,0 +1,42 @@
+{
+  "model": "minimind",
+  "weight": "multitask_halluc_v2_vlm",
+  "num_images": 500,
+  "settings": {
+    "positive": {
+      "total": 1500,
+      "accuracy": 0.5493333333333333,
+      "precision": 1.0,
+      "recall": 0.5493333333333333,
+      "f1": 0.7091222030981068,
+      "yes_ratio": 0.5493333333333333
+    },
+    "random": {
+      "total": 1500,
+      "accuracy": 0.7413333333333333,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "yes_ratio": 0.25866666666666666
+    },
+    "popular": {
+      "total": 1500,
+      "accuracy": 0.7793333333333333,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "yes_ratio": 0.22066666666666668
+    },
+    "adversarial": {
+      "total": 1500,
+      "accuracy": 0.7313333333333333,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "yes_ratio": 0.26866666666666666
+    }
+  },
+  "overall_accuracy": 0.7003333333333334,
+  "overall_yes_ratio": 0.3243333333333333,
+  "note": "POPE-style object existence probing on COCO2017 val2017 (see script header)."
+}
