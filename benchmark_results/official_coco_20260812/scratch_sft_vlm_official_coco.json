@@ -1,0 +1,16 @@
+{
+  "weight": "scratch_sft_vlm",
+  "samples": 5000,
+  "annotation_file": "dataset/coco2017/annotations/captions_val2017.json",
+  "official_coco": {
+    "Bleu_1": 0.6931998761737552,
+    "Bleu_2": 0.5055699790369413,
+    "Bleu_3": 0.35610529164855065,
+    "Bleu_4": 0.24847616469845044,
+    "ROUGE_L": 0.487382902313911,
+    "CIDEr": 0.7059116259514925,
+    "METEOR": 0.2502204425111244
+  },
+  "predictions_file": "results/official_coco/scratch_sft_vlm/predictions_coco.json",
+  "metric_note": "Official COCOEvalCap (pycocoevalcap) scores."
+}

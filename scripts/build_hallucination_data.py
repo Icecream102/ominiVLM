@@ -114,11 +114,11 @@ def main():
             index = futures[future]
             record = records[index]
             image_bytes = future.result()
-            digest = hashlib.md5(image_bytes).hexdigest()
+            question = f"Is there a {record['object']} in the image? Answer yes or no."
+            digest = hashlib.md5(image_bytes + question.encode()).hexdigest()
             if digest in seen:
                 continue
             seen.add(digest)
-            question = f"Is there a {record['object']} in the image? Answer yes or no."
             conversations = [
                 {"role": "user", "content": f"<image>\n{question}"},
                 {"role": "assistant", "content": record["answer"]},

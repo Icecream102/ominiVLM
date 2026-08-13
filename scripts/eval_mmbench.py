@@ -2,6 +2,7 @@
 
 import argparse
 import json
+from collections import defaultdict
 import random
 import re
 import time
@@ -91,6 +92,8 @@ def main():
     output_dir = Path(args.output_dir) / args.tag
     output_dir.mkdir(parents=True, exist_ok=True)
     correct = 0
+    category_stats = defaultdict(lambda: {"total": 0, "correct": 0})
+    l2_stats = defaultdict(lambda: {"total": 0, "correct": 0})
     start = time.perf_counter()
     with open(output_dir / "predictions.jsonl", "w", encoding="utf-8") as output:
         for position, index in enumerate(indices):
@@ -132,6 +135,12 @@ def main():
             predicted = extract_answer(response)
             is_correct = predicted == answer and answer in [letter for letter, _ in valid]
             correct += int(is_correct)
+            category = example.get("category") or "unknown"
+            l2 = example.get("L2-category") or example.get("l2-category") or "unknown"
+            category_stats[category]["total"] += 1
+            category_stats[category]["correct"] += int(is_correct)
+            l2_stats[l2]["total"] += 1
+            l2_stats[l2]["correct"] += int(is_correct)
             output.write(json.dumps({
                 "index": index, "question": example["question"], "category": example.get("category"),
                 "options": [f"{letter}. {option}" for letter, option in valid],
@@ -141,10 +150,21 @@ def main():
                 elapsed = time.perf_counter() - start
                 print(f"{position + 1}/{len(indices)} acc={correct / (position + 1):.4f} ({elapsed:.0f}s)")
 
+    def accuracy(stats):
+        return {
+            key: {
+                "total": value["total"],
+                "accuracy": value["correct"] / max(value["total"], 1),
+            }
+            for key, value in sorted(stats.items(), key=lambda item: -item[1]["total"])
+        }
+
     summary = {
         "model": args.model,
         "samples": len(indices),
         "accuracy": correct / max(len(indices), 1),
+        "by_category": accuracy(category_stats),
+        "by_l2_category": accuracy(l2_stats),
         "note": "MMBench en/dev single-pass MCQ accuracy (no circular evaluation).",
     }
     with open(output_dir / "summary.json", "w", encoding="utf-8") as output:

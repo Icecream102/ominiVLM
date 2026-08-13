@@ -1,0 +1,14 @@
+{
+  "weight": "qwen2.5-vl-3b-lora",
+  "samples": 5000,
+  "official_coco": {
+    "Bleu_1": 0.7579602342973965,
+    "Bleu_2": 0.5834432376311824,
+    "Bleu_3": 0.4388155923960789,
+    "Bleu_4": 0.32721846640081714,
+    "ROUGE_L": 0.5365520097977553,
+    "CIDEr": 0.9884252601452821,
+    "METEOR": 0.29783374984325817
+  },
+  "metric_note": "Official COCOEvalCap (pycocoevalcap) scores incl. METEOR."
+}

@@ -1,0 +1,114 @@
+{
+  "model": "qwen3b",
+  "samples": 4329,
+  "accuracy": 0.8761838761838762,
+  "by_category": {
+    "image_scene": {
+      "total": 407,
+      "accuracy": 0.9828009828009828
+    },
+    "celebrity_recognition": {
+      "total": 396,
+      "accuracy": 0.9772727272727273
+    },
+    "object_localization": {
+      "total": 315,
+      "accuracy": 0.7333333333333333
+    },
+    "function_reasoning": {
+      "total": 304,
+      "accuracy": 0.9177631578947368
+    },
+    "structuralized_imagetext_understanding": {
+      "total": 282,
+      "accuracy": 0.8794326241134752
+    },
+    "attribute_recognition": {
+      "total": 264,
+      "accuracy": 0.9659090909090909
+    },
+    "physical_property_reasoning": {
+      "total": 219,
+      "accuracy": 0.7031963470319634
+    },
+    "action_recognition": {
+      "total": 215,
+      "accuracy": 0.9534883720930233
+    },
+    "image_style": {
+      "total": 212,
+      "accuracy": 0.9716981132075472
+    },
+    "image_emotion": {
+      "total": 200,
+      "accuracy": 0.86
+    },
+    "nature_relation": {
+      "total": 179,
+      "accuracy": 0.8659217877094972
+    },
+    "spatial_relationship": {
+      "total": 177,
+      "accuracy": 0.6610169491525424
+    },
+    "identity_reasoning": {
+      "total": 176,
+      "accuracy": 0.9602272727272727
+    },
+    "social_relation": {
+      "total": 172,
+      "accuracy": 0.9534883720930233
+    },
+    "ocr": {
+      "total": 156,
+      "accuracy": 0.9807692307692307
+    },
+    "image_quality": {
+      "total": 150,
+      "accuracy": 0.5666666666666667
+    },
+    "attribute_comparison": {
+      "total": 141,
+      "accuracy": 0.7943262411347518
+    },
+    "image_topic": {
+      "total": 140,
+      "accuracy": 0.9428571428571428
+    },
+    "future_prediction": {
+      "total": 130,
+      "accuracy": 0.8384615384615385
+    },
+    "physical_relation": {
+      "total": 94,
+      "accuracy": 0.6382978723404256
+    }
+  },
+  "by_l2_category": {
+    "finegrained_perception (instance-level)": {
+      "total": 1131,
+      "accuracy": 0.9071618037135278
+    },
+    "coarse_perception": {
+      "total": 1109,
+      "accuracy": 0.8972046889089269
+    },
+    "attribute_reasoning": {
+      "total": 699,
+      "accuracy": 0.8612303290414879
+    },
+    "finegrained_perception (cross-instance)": {
+      "total": 533,
+      "accuracy": 0.8142589118198874
+    },
+    "relation_reasoning": {
+      "total": 445,
+      "accuracy": 0.851685393258427
+    },
+    "logic_reasoning": {
+      "total": 412,
+      "accuracy": 0.866504854368932
+    }
+  },
+  "note": "MMBench en/dev single-pass MCQ accuracy (no circular evaluation)."
+}

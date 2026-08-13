@@ -56,6 +56,7 @@ def load_rows(parquet_paths, limit=0):
     rows = []
     for parquet_path in parquet_paths:
         table = pq.read_table(parquet_path, columns=["image_bytes", "conversations"])
+        file_rows = []
         for index in range(table.num_rows):
             conversations = json.loads(table.column("conversations")[index].as_py())
             user_turn = next(
@@ -66,14 +67,15 @@ def load_rows(parquet_paths, limit=0):
             )
             if user_turn is None or assistant_turn is None:
                 continue
-            rows.append({
+            file_rows.append({
                 "image_bytes": table.column("image_bytes")[index].as_py(),
                 "user": user_turn.get("content", "").replace("<image>", "").strip(),
                 "answer": assistant_turn.get("content", "").strip(),
             })
+        if limit:
+            file_rows = file_rows[:limit]
+        rows.extend(file_rows)
         print(f"loaded {len(rows)} rows from {parquet_path}")
-    if limit:
-        rows = rows[:limit]
     return rows
 
 
@@ -158,7 +160,7 @@ def main():
         quantization_config=bnb_config,
         torch_dtype=torch.bfloat16,
         device_map="cuda",
-        attn_implementation="flash_attention_2",
+        attn_implementation="sdpa",
     )
     model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
     lora_config = LoraConfig(
@@ -173,6 +175,26 @@ def main():
     model.print_trainable_parameters()
 
     dataset = MultiTaskDataset(rows, processor)
+
+    def collate_fn(batch):
+        max_len = max(item["input_ids"].shape[0] for item in batch)
+        pad_id = processor.tokenizer.pad_token_id
+        input_ids = torch.full((len(batch), max_len), pad_id, dtype=torch.long)
+        attention_mask = torch.zeros((len(batch), max_len), dtype=torch.long)
+        labels = torch.full((len(batch), max_len), -100, dtype=torch.long)
+        for index, item in enumerate(batch):
+            length = item["input_ids"].shape[0]
+            input_ids[index, :length] = item["input_ids"]
+            attention_mask[index, :length] = item["attention_mask"]
+            labels[index, :length] = item["labels"]
+        return {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "labels": labels,
+            "pixel_values": torch.cat([item["pixel_values"] for item in batch], dim=0),
+            "image_grid_thw": torch.cat([item["image_grid_thw"] for item in batch], dim=0),
+        }
+
     if args.eval_ratio > 0:
         split = int(len(dataset) * (1 - args.eval_ratio))
         train_ds, eval_ds = torch.utils.data.random_split(
@@ -194,7 +216,7 @@ def main():
         logging_steps=args.logging_steps,
         save_steps=args.save_steps,
         save_total_limit=3,
-        evaluation_strategy="steps" if eval_ds else "no",
+        eval_strategy="steps" if eval_ds else "no",
         eval_steps=args.eval_steps,
         remove_unused_columns=False,
         gradient_checkpointing=True,
@@ -207,10 +229,8 @@ def main():
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=eval_ds,
-        data_collator=lambda features: {
-            key: torch.stack([feature[key] for feature in features])
-            for key in features[0]
-        },
+        data_collator=collate_fn,
+        tokenizer=processor.tokenizer,
     )
     trainer.train(resume_from_checkpoint=args.resume)
     trainer.save_model(args.output_dir)

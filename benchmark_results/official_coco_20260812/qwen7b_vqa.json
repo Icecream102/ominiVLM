@@ -1,0 +1,5 @@
+{
+  "weight": "qwen2.5-vl-3b-lora",
+  "samples": 2000,
+  "accuracy": 0.8291666666666672
+}

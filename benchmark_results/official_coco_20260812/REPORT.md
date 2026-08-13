@@ -222,3 +222,42 @@ VQA（32.8%），解决了"VQA 提升毁 caption"的 tradeoff；POPE 量化了
 `pope_qwen3b.json`、`judge_vs_official_final.json`、
 `data_profile_multitask.json`。完整叙述见
 [docs/UPGRADE_20260812.md](../../docs/UPGRADE_20260812.md)。
+
+---
+
+# 第二轮（2026-08-13）：7B QLoRA / DPO / 从零 VLM
+
+## 1. 7B QLoRA（单卡 24GB，8k 多任务混合，1.5h）
+
+| 基准 | 7B QLoRA | 3B LoRA | 65M 最终 |
+|---|---:|---:|---:|
+| 官方 COCO CIDEr | **0.9884** | 0.8364 | 0.6395 |
+| 官方 COCO BLEU-4 | **0.3272** | 0.2566 | 0.2271 |
+| 官方 COCO METEOR | **0.2978** | 0.2647 | 0.2364 |
+| VQAv2 | **82.9%** | 82.0% | 32.8% |
+| MMBench | **87.6%** | 84.9% | 26.0% |
+| POPE | **95.1%** | 94.2% | 37.4% |
+
+## 2. DPO（judge 3B 偏好对 1.5k，r=32 与 SFT 一致）
+
+VQAv2 82.9% / CIDEr 0.9869 / METEOR 0.2979 / POPE 94.9%——
+与 QLoRA 持平，能力零损失。
+
+## 3. 从零 VLM（freeze_llm=0 全解冻 + 幻觉负样本数据）
+
+| 指标 | scratch_sft_vlm | 旧 65M 最佳 |
+|---|---:|---:|
+| 官方 COCO BLEU-4 | **0.2485** | 0.2271 |
+| 官方 COCO CIDEr | **0.7059** | 0.6395 |
+| 官方 COCO METEOR | **0.2502** | 0.2364 |
+| POPE 准确率 | **78.5%** | 37.4% |
+| POPE yes 比例 | 6.9%（过矫正） | 76.7% |
+
+## 4. 新增结果文件
+
+`qwen7b_qlora_official_coco.json`、`qwen7b_dpo_official_coco.json`、
+`qwen7b_vqa.json`、`mmbench_qwen7b_qlora.json`、
+`pope_qwen7b_qlora.json`、`pope_qwen7b_dpo.json`、
+`pope_scratch_sft_vlm.json`、`scratch_sft_vlm_official_coco.json`、
+`mmbench_scratch_sft_vlm.json`。完整叙述见
+[docs/UPGRADE_20260813.md](../../docs/UPGRADE_20260813.md)。

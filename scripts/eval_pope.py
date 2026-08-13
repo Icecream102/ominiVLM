@@ -43,6 +43,8 @@ def parse_args():
     parser.add_argument("--max_new_tokens", type=int, default=8)
     parser.add_argument("--output_dir", default="results/pope")
     parser.add_argument("--tag", default=None, help="output subdir; default = model")
+    parser.add_argument("--constrained", action="store_true",
+                        help="restrict first token to yes/no and report calibration (ECE/AUROC)")
     return parser.parse_args()
 
 
@@ -53,6 +55,33 @@ def parse_yes_no(text):
     if re.match(r"^(no|nope|not)", text):
         return "no"
     return None
+
+
+def expected_calibration_error(labels, confidences, num_bins=10):
+    bins = [[] for _ in range(num_bins)]
+    for label, confidence in zip(labels, confidences):
+        index = min(int(confidence * num_bins), num_bins - 1)
+        bins[index].append((label, confidence))
+    total = max(len(labels), 1)
+    ece = 0.0
+    for bin_items in bins:
+        if not bin_items:
+            continue
+        bin_labels = [item[0] for item in bin_items]
+        bin_conf = [item[1] for item in bin_items]
+        accuracy = sum(bin_labels) / len(bin_labels)
+        ece += len(bin_items) / total * abs(accuracy - sum(bin_conf) / len(bin_conf))
+    return ece
+
+
+def auroc(labels, confidences):
+    pairs = sorted(zip(confidences, labels), key=lambda pair: -pair[0])
+    positives = sum(labels)
+    negatives = len(labels) - positives
+    if positives == 0 or negatives == 0:
+        return 0.5
+    rank_sum = sum(index + 1 for index, (_, label) in enumerate(pairs) if label == 1)
+    return (rank_sum - positives * (positives + 1) / 2) / (positives * negatives)
 
 
 def build_pope_records(instances_file, image_dir, num_images, pos_per_image, neg_per_image, seed):
@@ -151,8 +180,23 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     stats = defaultdict(lambda: {"total": 0, "correct": 0, "tp": 0, "fp": 0, "fn": 0, "yes": 0})
     start = time.perf_counter()
+    calibration = {"labels": [], "confidences": []}
 
-    def infer(image, question):
+    active_tokenizer = processor.tokenizer if args.model == "qwen3b" else tokenizer
+    yes_variants = [" yes", "Yes", "yes", " YES"]
+    no_variants = [" no", "No", "no", " NO"]
+    yes_ids = set()
+    no_ids = set()
+    for variant in yes_variants:
+        ids = active_tokenizer.encode(variant, add_special_tokens=False)
+        if ids:
+            yes_ids.add(ids[0])
+    for variant in no_variants:
+        ids = active_tokenizer.encode(variant, add_special_tokens=False)
+        if ids:
+            no_ids.add(ids[0])
+
+    def infer_response(image, question):
         if args.model == "qwen3b":
             messages = [{
                 "role": "user",
@@ -183,12 +227,62 @@ def main():
             )
         return tokenizer.decode(generated[0, inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
 
+    def infer_constrained(image, question):
+        """First-token yes/no probabilities via constrained generation."""
+        if args.model == "qwen3b":
+            messages = [{
+                "role": "user",
+                "content": [
+                    {"type": "image", "image": image},
+                    {"type": "text", "text": question},
+                ],
+            }]
+            text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            inputs = processor(text=[text], images=[image], return_tensors="pt").to("cuda")
+            with torch.inference_mode():
+                generated = model.generate(
+                    **inputs, max_new_tokens=1, do_sample=False,
+                    return_dict_in_generate=True, output_scores=True,
+                )
+            scores = generated.scores[0][0]
+        else:
+            pixel_values = {
+                key: value.to("cuda")
+                for key, value in evb.MiniMindVLM.image2tensor(image, processor).items()
+            }
+            content = question.replace("<image>", marker)
+            messages = [{"role": "user", "content": content}]
+            prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            inputs = tokenizer(prompt, return_tensors="pt", truncation=True).to("cuda")
+            with torch.inference_mode():
+                outputs = model(
+                    input_ids=inputs["input_ids"],
+                    attention_mask=inputs["attention_mask"],
+                    pixel_values=pixel_values,
+                )
+            scores = outputs.logits[0, -1]
+        probs = torch.softmax(scores.float(), dim=-1)
+        prob_yes = sum(float(probs[token_id]) for token_id in yes_ids if token_id < probs.numel())
+        prob_no = sum(float(probs[token_id]) for token_id in no_ids if token_id < probs.numel())
+        return prob_yes, prob_no
+
     with open(output_dir / "predictions.jsonl", "w", encoding="utf-8") as output:
         for index, record in enumerate(records):
             image = Image.open(record["image_path"]).convert("RGB")
             question = f"Is there a {record['object']} in the image? Answer yes or no."
-            response = infer(image, question)
-            predicted = parse_yes_no(response)
+            constrained_pred = None
+            confidence = None
+            if args.constrained:
+                prob_yes, prob_no = infer_constrained(image, question)
+                constrained_pred = "yes" if prob_yes >= prob_no else "no"
+                confidence = max(prob_yes, prob_no) / max(prob_yes + prob_no, 1e-9)
+                calibration["labels"].append(int(record["label"] == "yes"))
+                calibration["confidences"].append(confidence)
+                response = constrained_pred
+                predicted = constrained_pred
+            else:
+                response = infer_response(image, question)
+                predicted = parse_yes_no(response)
             is_correct = predicted == record["label"]
             key = record["setting"] if record["setting"] != "shared" else "positive"
             s = stats[key]
@@ -207,6 +301,8 @@ def main():
                 "label": record["label"], "setting": record["setting"],
                 "question": question, "response": response, "predicted": predicted,
                 "correct": is_correct,
+                "constrained_predicted": constrained_pred if args.constrained else None,
+                "confidence": confidence if args.constrained else None,
             }, ensure_ascii=False) + "\n")
             if (index + 1) % 300 == 0 or index + 1 == len(records):
                 elapsed = time.perf_counter() - start
@@ -239,6 +335,15 @@ def main():
         "overall_yes_ratio": overall["yes"] / max(overall["total"], 1),
         "note": "POPE-style object existence probing on COCO2017 val2017 (see script header).",
     }
+    if args.constrained:
+        labels = calibration["labels"]
+        confidences = calibration["confidences"]
+        summary["constrained_calibration"] = {
+            "ece": expected_calibration_error(labels, confidences),
+            "auroc": auroc(labels, confidences),
+            "mean_confidence": sum(confidences) / max(len(confidences), 1),
+            "base_rate_yes": sum(labels) / max(len(labels), 1),
+        }
     with open(output_dir / "summary.json", "w", encoding="utf-8") as output:
         json.dump(summary, output, ensure_ascii=False, indent=2)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
