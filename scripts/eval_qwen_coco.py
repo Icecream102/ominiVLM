@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument("--max_samples", type=int, default=0)
     parser.add_argument("--max_new_tokens", type=int, default=48)
     parser.add_argument("--output_dir", default="results/official_coco_qwen")
+    parser.add_argument("--tag", default="qwen", help="output subdirectory")
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args()
 
@@ -49,7 +50,8 @@ def main():
     model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
         args.model_path, torch_dtype="bfloat16", device_map="cuda"
     )
-    model = PeftModel.from_pretrained(model, args.adapter_path)
+    if args.adapter_path:
+        model = PeftModel.from_pretrained(model, args.adapter_path)
     model.eval()
 
     predictions = {}
@@ -73,7 +75,7 @@ def main():
             elapsed = time.perf_counter() - start
             print(f"{index + 1}/{len(records)} ({elapsed / max(index + 1, 1):.3f}s/img)")
 
-    output_dir = Path(args.output_dir)
+    output_dir = Path(args.output_dir) / args.tag
     output_dir.mkdir(parents=True, exist_ok=True)
     with open(output_dir / "predictions_coco.json", "w", encoding="utf-8") as output:
         json.dump([{"image_id": k, "caption": v} for k, v in predictions.items()], output, ensure_ascii=False, indent=2)

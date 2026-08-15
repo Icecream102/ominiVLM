@@ -55,6 +55,22 @@
 
 VQA 数据占比越高 VQA 越强（8.4% / 20.9% / 23.0%），caption 能力保持高位。
 
+### 分阶段样例可视化
+
+VQA 阶段（65M vs 7B 同题回答）：
+
+![stage-vqa](benchmark_results/official_coco_20260812/samples/stage_vqa_65m_vs_7b.png)
+
+知识型阶段（OK-VQA：zero-shot / 知识型 SFT / DPO v6）：
+
+![stage-okvqa](benchmark_results/official_coco_20260812/samples/stage_okvqa_zs_sft_dpo.png)
+
+DPO 修复阶段（v5 塌缩 vs v6 稳定）：
+
+![stage-dpo](benchmark_results/official_coco_20260812/samples/stage_dpo_v5_vs_v6.png)
+
+每个阶段的结果表与更多样例见 [完整实验报告](benchmark_results/official_coco_20260812/REPORT.md)。
+
 ## 文档
 
 - [完整实验报告](benchmark_results/official_coco_20260812/REPORT.md)

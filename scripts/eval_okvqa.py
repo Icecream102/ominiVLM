@@ -40,6 +40,7 @@ def parse_args():
     parser.add_argument("--max_new_tokens", type=int, default=32)
     parser.add_argument("--output_dir", default="results/okvqa")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--tag", default=None, help="output subdir override")
     parser.add_argument("--short_instruction", default=" Answer in one word or a short phrase.")
     return parser.parse_args()
 
@@ -124,7 +125,7 @@ def main():
         model, tokenizer, processor = evb.load_model(args)
         marker = model.config.image_special_token * model.config.image_token_len
 
-    tag = "qwen2.5-vl-3b-lora" if args.model == "qwen3b" else args.weight
+    tag = args.tag or ("qwen2.5-vl-3b-lora" if args.model == "qwen3b" else args.weight)
     output_dir = Path(args.output_dir) / tag
     output_dir.mkdir(parents=True, exist_ok=True)
     correct = 0

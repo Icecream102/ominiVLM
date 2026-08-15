@@ -9,12 +9,13 @@ policy = 4-bit QLoRA model, reference = frozen base model. Loss:
 import argparse
 import io
 import json
+import random
 from pathlib import Path
 
 import pyarrow.parquet as pq
 import torch
 from PIL import Image
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+from peft import PeftModel
 from torch.optim import AdamW
 from transformers import (
     AutoProcessor,
@@ -35,6 +36,7 @@ def parse_args():
     parser.add_argument("--grad_accum", type=int, default=8)
     parser.add_argument("--lr", type=float, default=2e-5)
     parser.add_argument("--beta", type=float, default=0.1)
+    parser.add_argument("--kl_lambda", type=float, default=0.1, help="reference-KL regularization weight")
     parser.add_argument("--lora_r", type=int, default=32)
     parser.add_argument("--lora_alpha", type=int, default=64)
     parser.add_argument("--max_seq_len", type=int, default=512)
@@ -74,6 +76,17 @@ def build_inputs(processor, image, prompt, response):
     ]
     text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
     encoded = processor(text=text, images=image, return_tensors="pt")
+    prompt_messages = [{
+        "role": "user",
+        "content": [
+            {"type": "image", "image": image},
+            {"type": "text", "text": prompt},
+        ],
+    }]
+    prompt_text = processor.apply_chat_template(prompt_messages, tokenize=False, add_generation_prompt=True)
+    prompt_encoded = processor(text=prompt_text, images=image, return_tensors="pt")
+    labels = encoded["input_ids"].clone()
+    labels[:, : prompt_encoded["input_ids"].shape[1]] = -100
     pixel_values = encoded["pixel_values"]
     if isinstance(pixel_values, (list, tuple)):
         pixel_values = torch.cat(
@@ -88,6 +101,7 @@ def build_inputs(processor, image, prompt, response):
         grid_thw = grid_thw.unsqueeze(0)
     return {
         "input_ids": encoded["input_ids"],
+        "labels": labels,
         "attention_mask": encoded["attention_mask"],
         "pixel_values": pixel_values,
         "image_grid_thw": grid_thw,
@@ -107,16 +121,21 @@ def log_prob(model, inputs, device, grad=False):
         )
     logits = outputs.logits.float()
     log_probs = torch.log_softmax(logits, dim=-1)
-    labels = inputs["input_ids"].to(device)
-    gathered = log_probs.gather(-1, labels.unsqueeze(-1)).squeeze(-1)
-    mask = (labels != -100).float() if (labels != -100).any() else torch.ones_like(labels, dtype=torch.float)
+    labels = inputs["labels"].to(device) if "labels" in inputs else inputs["input_ids"].to(device)
+    indices = inputs["input_ids"].to(device).unsqueeze(-1)
+    gathered = log_probs.gather(-1, indices).squeeze(-1)
+    mask = (labels != -100).float()
+    if not mask.any():
+        mask = torch.ones_like(labels, dtype=torch.float)
     return (gathered * mask).sum(dim=1) / mask.sum(dim=1).clamp_min(1)
 
 
 def main():
     args = parse_args()
     torch.manual_seed(args.seed)
+    random.seed(args.seed)
     pairs = load_pairs(args.data_path, args.max_samples)
+    random.shuffle(pairs)
     print(f"loaded {len(pairs)} preference pairs")
 
     bnb_config = BitsAndBytesConfig(
@@ -132,16 +151,13 @@ def main():
         args.model_path, quantization_config=bnb_config,
         torch_dtype=torch.bfloat16, device_map="cuda"
     )
-    reference.requires_grad_(False).eval()
-    policy = prepare_model_for_kbit_training(policy, use_gradient_checkpointing=True)
-    lora_config = LoraConfig(
-        r=args.lora_r, lora_alpha=args.lora_alpha, lora_dropout=0.05,
-        bias="none", task_type="CAUSAL_LM",
-        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
-    )
-    policy = get_peft_model(policy, lora_config)
     if args.adapter_path:
-        policy.load_adapter(args.adapter_path, adapter_name="default")
+        policy = PeftModel.from_pretrained(policy, args.adapter_path)
+        reference = PeftModel.from_pretrained(reference, args.adapter_path)
+    for name, parameter in policy.named_parameters():
+        parameter.requires_grad = "lora_" in name.lower()
+    reference.requires_grad_(False).eval()
+    policy.train()
     policy.print_trainable_parameters()
 
     optimizer = AdamW(filter(lambda p: p.requires_grad, policy.parameters()), lr=args.lr)
@@ -163,7 +179,10 @@ def main():
                 pi_chosen = log_prob(policy, chosen_inputs, device, grad=True)
                 pi_rejected = log_prob(policy, rejected_inputs, device, grad=True)
                 log_ratio = (pi_chosen - pi_rejected) - (ref_chosen - ref_rejected)
-                loss_terms.append(-torch.nn.functional.logsigmoid(args.beta * log_ratio).mean())
+                kl_penalty = args.kl_lambda * torch.clamp_min(ref_chosen.detach() - pi_chosen, 0.0)
+                loss_terms.append(
+                    -torch.nn.functional.logsigmoid(args.beta * log_ratio).mean() + kl_penalty.mean()
+                )
             loss = torch.stack(loss_terms).mean() / args.grad_accum
             loss.backward()
             total_loss += loss.item() * args.grad_accum
