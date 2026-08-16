@@ -81,3 +81,14 @@
 - 数据：配比消融 / 去重 / 画像 / 多任务混合；
 - 研究素养：负结果如实呈现、诚实边界声明。
 
+## LaTeX 简历条目（2026-08-16 更新）
+
+```latex
+\intern{\dateRange{\textbf{2026.2}}{\textbf{2026.3}}}{\textbf{MiniMind-V 轻量多模态模型训练与微调}}{\textbf{项目成员}}
+\begin{itemize}
+    \item 基于 SigLIP2 + MLP Projection + MiniMind LLM 从零搭建 65M VLM，在单卡 RTX 4090（24GB）上跑通 Pretrain(1.27M) → SFT(2.9M) → 多任务 SFT(231k) → GRPO/DPO → 官方评测全流程，并扩展至 Qwen2.5-VL-3B/7B 的 LoRA/QLoRA 微调（VQAv2 82.0\%/82.9\%，MMBench 84.9\%/87.6\%，官方 COCO CIDEr 0.8364/0.9884）。
+    \item 诊断并修复 GRPO 奖励错位：代理奖励上升 23.5\% 但官方指标退化、KL 扩大 11 倍，通过自适应 KL、增大 group、CIDEr 对齐奖励将官方 BLEU-4 从 0.0067 提升至 0.0266（超过 SFT）；完成 VQA 短答案格式对齐（0 → 31.6\% → 32.8\%）与 DPO 训练塌缩修复，搭建 COCOEvalCap / VQAv2 / MMBench / POPE 官方口径评测体系。
+\end{itemize}
+```
+
+> 说明：原条目中的 "CLIP ViT-B/16" 与本项目实际架构（SigLIP2 + MLP Projection）不符，已修正；日期区间按原简历保留，如需对齐实际实验时间（2026.8）请自行调整。
