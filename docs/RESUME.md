@@ -7,7 +7,7 @@
 - 基于 SigLIP2 Vision Encoder、MLP Projection 与 65M MiniMind LLM 搭建端到端 VLM，完成 127 万图文样本 Pretrain、290 万混合指令样本 SFT 与 5000-step GRPO 后训练；支持 bfloat16、冻结策略、原子断点续训和一键可恢复流水线。
 - 实现 COCO2017 统一评测框架，在固定 500 张验证图上统计 BLEU、METEOR、ROUGE-L、CIDEr-style、吞吐与显存，并通过正确图/全黑图/错配图对照量化视觉依赖，保留逐样本预测以支持误差分析。
 - 针对 GRPO 中“代理奖励上升但下游 Caption 指标下降”的奖励错位问题，分析 KL 从前 500 步 0.076 增至末 500 步 0.838 的策略漂移，引入自适应 KL 系数、KL safety stop、可配置组合奖励和分项日志。
-- 在单张 RTX 5090 上完成全量可复现实验：Pretrain 1.69h、SFT 6.28h、GRPO 0.50h；建立 JSON 实验配置、结果自动汇总、单元测试与 GitHub Actions CI，形成可审计的训练日志、模型卡和实验报告。
+- 在单张 RTX 4090（24GB）上完成全量可复现实验：Pretrain 1.69h、SFT 6.28h、GRPO 0.50h；建立 JSON 实验配置、结果自动汇总、单元测试与 GitHub Actions CI，形成可审计的训练日志、模型卡和实验报告。
 
 ## 面试展开要点
 
@@ -79,6 +79,26 @@
     hack），以及参考模型 4-bit 化的工程细节。
 15. 评测升级：POPE 约束解码校准（ECE/AUROC）、text-only 鲁棒性、
     MMBench 按类拆分的分析方法论。
+
+## 四、第三轮升级版（2026-08-14/15）：知识增强与 DPO 塌缩修复
+
+**一句话版**：7B 继续预训练结论翻正（S4 混合语料 OK-VQA +5.0pp），知识型 SFT
+OK-VQA 48.6% / MMBench 87.50%，并完整修复 DPO 灾难性塌缩（v5 退化 token 998/1000 →
+v6 无退化、COCO CIDEr 0.9973 全场最高）。
+
+### 简历条目
+
+- **继续预训练-任务对齐度发现**：纯 caption 继续预训练（r=128、160k 样本）不迁移知识问答
+  （OK-VQA 39.7%），混合任务语料 S4（caption+OK-VQA+multitask）在 OK-VQA +5.0pp、
+  MMBench +0.19pp 双正——继续预训练增益取决于语料-任务对齐度；
+- **DPO 六类故障诊断与修复**：数据偏置（26.6% yes/no）→ 过滤平衡 11k 对；β 0.02→0.1；
+  gather -100 索引越界修复；reference 错配修复；loss 误读澄清；回答掩码修正。v6 稳定，
+  COCO CIDEr 0.9973（全场最高）、OK-VQA 47.7%、MMBench 87.32%、退化 token 0/1000；
+- **幻觉 DPO**：7B positive F1 0.949 → 0.957，随机负例 yes 率仅 2.6%，近饱和下的边际提升。
+
+> 最新、最全的简历条目（面向字节/阿里/腾讯多模态核心算法岗）见
+> [RESUME_ENTRIES.md](RESUME_ENTRIES.md)，完整结果表见
+> [PROJECT_RESULTS_SUMMARY.md](PROJECT_RESULTS_SUMMARY.md)。
 
 ## 使用边界
 

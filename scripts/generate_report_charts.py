@@ -38,6 +38,8 @@ def acc(path):
 
 def main():
     # 1) Benchmark overview: 65M multitask vs 3B LoRA vs 7B LoRA
+    #    one standalone bar chart per metric (VQAv2 / MMBench / COCO CIDEr),
+    #    CIDEr shown at raw scale (no x100) with explicit y-axis label.
     models = ["65M multitask", "3B LoRA", "7B LoRA"]
     vqa = [acc("results/vqa/multitask_final_vlm/summary.json"),
            acc("results/vqa_qwen/summary.json"),
@@ -48,18 +50,33 @@ def main():
     cider = [coco_score("results/official_coco/multitask_final_vlm/summary.json", "CIDEr"),
              coco_score("results/official_coco_qwen/summary.json", "CIDEr"),
              coco_score("results/official_coco_qwen7b/summary.json", "CIDEr")]
-    fig, axes = plt.subplots(1, 3, figsize=(13, 4))
-    for ax, data, title in zip(axes, [vqa, mmb, cider], ["VQAv2 acc (%)", "MMBench en/dev (%)", "COCO CIDEr"]):
-        values = [round(v * 100, 1) if v else 0 for v in data]
-        ax.bar(models, values, color=["#4C72B0", "#DD8452", "#55A868"])
+
+    palette = ["#4C72B0", "#DD8452", "#55A868"]
+
+    def overview_chart(data, fmt, filename, value_offset):
+        values = [v if v else 0 for v in data]
+        fig, ax = plt.subplots(figsize=(5.2, 4.2))
+        ax.bar(models, values, color=palette)
         for i, v in enumerate(values):
-            ax.text(i, v + 0.5, f"{v}", ha="center", fontsize=9)
-        ax.set_title(title)
-        ax.set_ylim(0, max(values) * 1.18 + 5)
-    fig.suptitle("omniVLM benchmark overview (2026-08-13)", fontsize=13)
-    fig.tight_layout()
-    fig.savefig(OUT / "benchmark_overview.png", dpi=150)
-    plt.close(fig)
+            ax.text(i, v + value_offset, f"{v:{fmt}}", ha="center", fontsize=10)
+        ax.set_ylim(0, max(values) * 1.18 + value_offset)
+        ax.grid(axis="y", alpha=0.3)
+        fig.tight_layout()
+        fig.savefig(OUT / filename, dpi=150)
+        plt.close(fig)
+        print("saved", OUT / filename)
+
+    overview_chart(
+        [round(v * 100, 1) if v else 0 for v in vqa],
+        ".1f", "benchmark_overview_vqa.png", 0.5,
+    )
+    overview_chart(
+        [round(v * 100, 1) if v else 0 for v in mmb],
+        ".1f", "benchmark_overview_mmbench.png", 0.5,
+    )
+    overview_chart(
+        cider, ".3f", "benchmark_overview_cider.png", max(cider) * 0.02,
+    )
 
     # 2) GRPO fix chain (official BLEU-4)
     chain = [
