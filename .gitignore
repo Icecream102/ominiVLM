@@ -2,6 +2,7 @@
 autodl.md
 .idea/
 .vscode/
+.github/
 
 # Python
 __pycache__/

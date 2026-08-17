@@ -62,11 +62,7 @@ the 65M base is trained from scratch.
 | Model | Description                                                                              |
 | :--- |:-----------------------------------------------------------------------------------------|
 | minimind-v-65m-multitask | 65M from-scratch Pretrain → multitask SFT |
-| qwen2.5-vl-3b-lora-vqa | 3B LoRA VQA SFT|
-| qwen2.5-vl-7b-qlora-multitask | 7B QLoRA multitask|
-| qwen2.5-vl-7b-knowledge-sft | 7B knowledge SFT on OK-VQA + multitask  |
 | qwen2.5-vl-7b-dpo-v6 | 7B DPO v6 on 11,093 balanced preference pairs |
-| qwen2.5-vl-7b-halluc-dpo | 7B hallucination DPO, 400 steps |
 | omniVLM-checkpoints | all checkpoints, ablations & datasets |
 
 ## Results
@@ -76,10 +72,6 @@ the 65M base is trained from scratch.
 | Model |                 Training | VQAv2 | MMBench | OK-VQA | COCO CIDEr | COCO BLEU-4 | POPE |
 |---|-------------------------:|---:|---:|---:|---:|---:|---:|
 | 65M | Pretrain → multitask SFT | 32.8% | 26.0% | 3.2% | 0.6395 | 0.2271 | 37.4% |
-| Qwen2.5-VL-3B |             LoRA| 82.0% | 84.9% | 38.5% | 0.8364 | 0.2566 | 94.2% |
-| **Qwen2.5-VL-7B** |      **QLoRA multitask** | **82.9%** | **87.6%** | 48.6%* | **0.9884** | **0.3272** | **95.1%** |
-
-*OK-VQA 48.6% comes from the 7B knowledge SFT
 
 ### 2. GRPO reward-alignment (COCOEvalCap)
 
@@ -94,14 +86,11 @@ the 65M base is trained from scratch.
 | **GRPO (CIDEr-aligned reward, group=16)** | **0.2392** | **0.0266** | **0.2159** | 0.0036 | **0.1529** |
 
 
-### 3. 7B continued pretraining → knowledge SFT → DPO
+### 3. 7B DPO alignment
 
 | Stage | OK-VQA | MMBench | COCO CIDEr |
 |---|---:|---:|---:|
 | 7B zero-shot | 42.6% | 87.34% | — |
-| Caption-only continued pretraining (r=128, 160k) | 39.7% | 87.36% | 0.011 |
-| S4 knowledge-mixed continued pretraining | 47.6% | 87.53% | 0.959 |
-| Knowledge SFT (OK-VQA 9,009 + multitask 9,009) | **48.6%** | 87.50% | 0.9965 |
 | DPO (expanded preferences, β=0.03) | 45.9% | 87.39% | 0.9547 |
 | **DPO (balanced preferences, β=0.1)** | 47.7% | 87.32% | **0.9973** |
 
@@ -123,10 +112,7 @@ the 65M base is trained from scratch.
 | 65M multitask (baseline)                  | 0.878 | 78.7% |
 | 65M + hallucination SFT (1:3)             | 0.422 | 6.0% |
 | 65M + hallucination SFT (1:1 balanced) | 0.709 | 25.9% |
-| Qwen2.5-VL-3B LoRA                        | 0.926 | 2.1% |
-| Qwen2.5-VL-7B QLoRA                       | 0.949 | 1.9% |
 | 7B + general DPO                          | 0.952 | 2.0% |
-| **7B + hallucination DPO (400 steps)**    | **0.957** | 2.6% |
 
 ## Cases
 
@@ -135,12 +121,12 @@ the 65M base is trained from scratch.
 |                                          VQA Case 1                                        |                                         VQA Case 2                                         |
 |:---------------------------------------------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------------------------------------------:|
 | <img src="benchmark_results/official_coco_20260812/samples/single/stage_vqa_145369.png" width="320" alt="vqa_145369"> | <img src="benchmark_results/official_coco_20260812/samples/single/stage_vqa_93852.png" width="320" alt="vqa_93852"> |
-|           **Q**: How many elephants are in the photo?<br>**65M multitask**: 1<br>**Qwen2.5-VL-7B LoRA**: 7            |    **Q**: What might the owner's favorite color be?<br>**65M multitask**: blue<br>**Qwen2.5-VL-7B LoRA**: orange    |
+|           **Q**: How many elephants are in the photo?<br>**65M multitask**: 1            |    **Q**: What might the owner's favorite color be?<br>**65M multitask**: blue    |
 
 |                                                     OK-VQA Case 1                                                       | OK-VQA Case 2 |
 |:-----------------------------------------------------------------------------------------------------------------------:| :---: |
 | <img src="benchmark_results/official_coco_20260812/samples/single/stage_okvqa_53420.png" width="320" alt="okvqa_53420"> | <img src="benchmark_results/official_coco_20260812/samples/single/stage_okvqa_303026.png" width="320" alt="okvqa_303026"> |
-|      **Q**: Which country is this sport big in?<br>**zero-shot**: USA<br>**knowledge SFT**: usa<br>**DPO (balanced pairs)**: usa      | **Q**: What is the woman sitting on?<br>**zero-shot**: bench<br>**knowledge SFT**: bench<br>**DPO (balanced pairs)**: bench |
+|      **Q**: Which country is this sport big in?<br>**zero-shot**: USA<br>**DPO (balanced pairs)**: usa      | **Q**: What is the woman sitting on?<br>**zero-shot**: bench<br>**DPO (balanced pairs)**: bench |
 
 | DPO Case 1 |  DPO Case 2 |
 | :---: | :---: |
