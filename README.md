@@ -18,7 +18,7 @@ The project spans training a 65M [MiniMind-V](https://github.com/jingyaogong/min
 
 **Environment**
 
-**Hardware**: a single RTX 4090 / 4090D (24 GB); bf16 precision.
+**Hardware**: a single RTX 4090 (24 GB); bf16 precision.
 
 ```bash
 # 1.Start-up
